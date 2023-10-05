@@ -1,51 +1,111 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const link = "https://japceibal.github.io/japflix_api/movies-data.json"
-    let arrayPeliculas = [];
-    fetch(link)
-        .then(response => response.json())
+document.addEventListener("DOMContentLoaded", function () {
+    const inputBuscar = document.getElementById("inputBuscar");
+    const btnBuscar = document.getElementById("btnBuscar");
+    const lista = document.getElementById("lista");
+    let movieData = null; // almacén de los datos de películas
+  
+    // carga de datos de películas desde el JSON
+    function cargarDatos() {
+      fetch("https://japceibal.github.io/japflix_api/movies-data.json")
+        .then((response) => response.json())
         .then((data) => {
-            arrayPeliculas = data;
-
-            const btn = document.getElementById("btnBuscar");
-            const input = document.getElementById("inputBuscar");
-            
-            
-            btn.addEventListener("click", (e) => {
-                e.preventDefault();
-                if (input.value) {
-                    // campo buscador
-                    const textoBusqueda = input.value.toLowerCase();
-                    const container=document.getElementById("lista");
-                    // Filtrar los productos según el texto de búsqueda
-                    const peliculasFiltradas = arrayPeliculas.filter((pelicula) => {
-                        const titulo = pelicula.title.toLowerCase();
-                        const descripcion = pelicula.overview.toLowerCase();
-                        // const genero=pelicula.genres
-                        // genero.forEach(element => {
-                        //     element
-                        // });
-                        return titulo.includes(textoBusqueda) || descripcion.includes(textoBusqueda);
-                    });
-                    peliculasFiltradas.forEach(element => {
-                        const item = document.createElement("div");
-                        item.classList.add("pelicula");
-                        const titulo = document.createElement("h5");
-                        titulo.textContent = element.title;
-                        item.appendChild(titulo);
-                        const tagline = document.createElement("p");
-                        tagline.textContent = element.tagline;
-                        item.appendChild(tagline);
-                        container.appendChild(item);
-                        // const stars = ScoreToEstrellas(comment.score);
-               
-                    // Limpiar la lista y mostrar los productos filtrados
-                    });
-                } else {
-                    alert("Campo de búsqueda vacío")
-                }
-
-            })
+          movieData = data; // almacén de los datos cargados
         })
-        .catch((error) => console.log(error));
+        .catch((error) => {
+          console.error("Error al cargar los datos:", error);
+        });
+    }
+  
+    // función para mostrar películas según búsqueda
+    function mostrarPeliculas() {
+      const searchTerm = inputBuscar.value.toLowerCase();
+      lista.innerHTML = "";
+  
+      movieData.forEach((movie, index) => {
+        const { title, tagline, vote_average, genres, overview } = movie;
+        if (
+          title.toLowerCase().includes(searchTerm) ||
+          tagline.toLowerCase().includes(searchTerm) ||
+          genres.join(" ").toLowerCase().includes(searchTerm) ||
+          overview.toLowerCase().includes(searchTerm)
+        ) {
+          const listItem = document.createElement("li");
+          listItem.classList.add("list-group-item");
+  
+          const titleElement = document.createElement("h5");
+          titleElement.textContent = title;
+  
+          const taglineElement = document.createElement("p");
+          taglineElement.textContent = tagline;
+  
+          const ratingElement = document.createElement("p");
+          ratingElement.textContent = `Rating: ${vote_average}`;
+  
+          // Asignar el índice como un atributo data-id
+          listItem.setAttribute("data-id", index);
+  
+          listItem.appendChild(titleElement);
+          listItem.appendChild(taglineElement);
+          listItem.appendChild(ratingElement);
+  
+          lista.appendChild(listItem);
+        }
+      });
+    }
+  
+    // función para mostrar  detalles de película en offcanvas
+    function mostrarDetallesPelicula(pelicula) {
+    const movieDetailsContainer = document.getElementById("movieDetails");
+    movieDetailsContainer.innerHTML = "";
+  
+    // elementos para mostrar detalles de película
+    const titleElement = document.createElement("h5");
+    titleElement.textContent = pelicula.title;
+  
+    const overviewElement = document.createElement("p");
+    overviewElement.textContent = `${pelicula.overview}`;
+  
+    const genreElement = document.createElement("p");
+    genreElement.textContent = `${pelicula.genres.map((genre) => genre.name).join(" - ")}`;
+  
+    const hrElement = document.createElement("hr");
 
-});
+    // implemento de elementos al contenedor
+    movieDetailsContainer.appendChild(titleElement);
+    movieDetailsContainer.appendChild(overviewElement);
+    movieDetailsContainer.appendChild(hrElement);
+    movieDetailsContainer.appendChild(genreElement);
+  
+    // offcanvas
+    const offcanvasTop = new bootstrap.Offcanvas(document.getElementById("offcanvasTop"));
+    offcanvasTop.show();
+  }
+  
+    // clic en la lista de películas
+    lista.addEventListener("click", function (event) {
+      const clickedItem = event.target.closest("li");
+      if (clickedItem) {
+        // Obtener el índice de la película a partir del atributo data-id
+        const index = clickedItem.getAttribute("data-id");
+  
+        // mostrar  detalles de película en el offcanvas
+        mostrarDetallesPelicula(movieData[index]);
+      }
+    });
+  
+    // botón de búsqueda al clickear
+    btnBuscar.addEventListener("click", function () {
+      const searchTerm = inputBuscar.value.trim();
+      if (searchTerm !== "") {
+        if (movieData === null) {
+          cargarDatos();
+        } else {
+          mostrarPeliculas(); // mostrar pelis con datos cargados
+        }
+      }
+    });
+  
+    // carga de datos al cargar la página
+    cargarDatos();
+  });
+  
